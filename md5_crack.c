@@ -33,7 +33,6 @@
 #define MIN_LENGTH 3
 #define MAX_LENGTH 16
 #define TABLE_SIZE 9024
-#define ENTRY_SIZE 4
 #define ENTRIES (TABLE_SIZE/ENTRY_SIZE)
 
 /* Structure to store strings */
@@ -60,7 +59,7 @@ static void init_string_table(string_table_t *table, const char start, int lengt
 	memset(&table->rainbow, 0, sizeof(rainbow_t) * ENTRIES);
 
 	for (int i = 0; i < ENTRIES; i++) {
-		for (int j = 0; j < 4; j++) {
+		for (int j = 0; j < ENTRY_SIZE; j++) {
 			table->rainbow[i].strings[j].c[0] = temp1;
 			table->rainbow[i].strings[j].c[1] = temp2;
 			table->rainbow[i].strings[j].c[2] = start;

@@ -40,9 +40,10 @@ typedef union md5_raw {
 } md5_binary_t;
 
 /* Four strings and their associated hashes */
+#define ENTRY_SIZE 4
 typedef ALIGNED struct rainbow {
-	m128i_t strings[4];
-	md5_binary_t hashes[4];
+	m128i_t strings[ENTRY_SIZE];
+	md5_binary_t hashes[ENTRY_SIZE];
 } rainbow_t;
 
 /* Per run data structures */
