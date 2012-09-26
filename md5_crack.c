@@ -24,29 +24,25 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include "charset.h"
 #include "cpus.h"
 #include "md5_string.h"
 #include "md5.h"
 
-#define CHAR_START 0x20
-#define CHAR_END 0x7E
 #define MIN_LENGTH 3
 #define MAX_LENGTH 16
-#define TABLE_SIZE 9024
-#define ENTRIES (TABLE_SIZE/ENTRY_SIZE)
 
 /* Structure to store strings */
 typedef __attribute__ ((aligned(16))) struct string_table {
-	rainbow_t rainbow[ENTRIES];
+	rainbow_t rainbow[MAX_ENTRIES];
 	int length;
 } string_table_t;
 
 /* Counters and quit flag */
-static int cpus, char_count = CHAR_END - CHAR_START;
+static int cpus, entries;
 static int start_length = MIN_LENGTH, end_length = MAX_LENGTH;
 static unsigned long calculated = 0, stopped = 0, quit = 0;
-
-static char chars[CHAR_END-CHAR_START + 1];
+static char chars[MAX_CHARS + 1];
 
 /* Signal handler */
 static void terminate(int signum) { quit = 1; }
@@ -54,20 +50,20 @@ static void terminate(int signum) { quit = 1; }
 /* Initialize a buffer */
 static void init_string_table(string_table_t *table, const char start, int length)
 {
-	char temp1 = CHAR_START, temp2 = CHAR_START;
+	char temp1 = charset->start, temp2 = charset->start;
 	table->length = length;
-	memset(&table->rainbow, 0, sizeof(rainbow_t) * ENTRIES);
+	memset(&table->rainbow, 0, sizeof(rainbow_t) * entries);
 
-	for (int i = 0; i < ENTRIES; i++) {
+	for (int i = 0; i < entries; i++) {
 		for (int j = 0; j < ENTRY_SIZE; j++) {
 			table->rainbow[i].strings[j].c[0] = temp1;
 			table->rainbow[i].strings[j].c[1] = temp2;
 			table->rainbow[i].strings[j].c[2] = start;
 			for (int k = 3; k < length; k++)
-				table->rainbow[i].strings[j].c[k] = CHAR_START;
+				table->rainbow[i].strings[j].c[k] = charset->start;
 
-			if (temp2 == CHAR_END) {
-				temp2 = CHAR_START;
+			if (temp2 == charset->end) {
+				temp2 = charset->start;
 				temp1++;
 			} else
 				temp2++;
@@ -79,13 +75,13 @@ static void init_string_table(string_table_t *table, const char start, int lengt
 static void inc_string(string_table_t *table, const char start, const char end)
 {
 	for (int i = table->length - 1; i > 1; i--) {
-		char temp = CHAR_START;
+		char temp = charset->start;
 		if (i == 2 && table->rainbow[0].strings[0].c[i] == end)
 			temp = start;
-		else if (table->rainbow[0].strings[0].c[i] < CHAR_END)
+		else if (table->rainbow[0].strings[0].c[i] < charset->end)
 			temp = table->rainbow[0].strings[0].c[i] + 1;
 
-		for (int j = 0; j < ENTRIES; j++) {
+		for (int j = 0; j < entries; j++) {
 			table->rainbow[j].strings[0].c[i] = temp;
 			table->rainbow[j].strings[1].c[i] = temp;
 			table->rainbow[j].strings[2].c[i] = temp;
@@ -94,22 +90,23 @@ static void inc_string(string_table_t *table, const char start, const char end)
 
 		if (i == 2 && temp == start)
 			break;
-		else if (temp != CHAR_START)
+		else if (temp != charset->start)
 			return;
 	}
 
 	table->length++;
-	for (int j = 0; j < ENTRIES; j++) {
-		table->rainbow[j].strings[0].c[table->length - 1] = CHAR_START;
-		table->rainbow[j].strings[1].c[table->length - 1] = CHAR_START;
-		table->rainbow[j].strings[2].c[table->length - 1] = CHAR_START;
-		table->rainbow[j].strings[3].c[table->length - 1] = CHAR_START;
+	for (int j = 0; j < entries; j++) {
+		table->rainbow[j].strings[0].c[table->length - 1] = charset->start;
+		table->rainbow[j].strings[1].c[table->length - 1] = charset->start;
+		table->rainbow[j].strings[2].c[table->length - 1] = charset->start;
+		table->rainbow[j].strings[3].c[table->length - 1] = charset->start;
 	}
 }
 
 /* Actually do work */
 static void *do_work(void *p)
 {
+	int char_count = charset->count - 1;
 	unsigned long id = (unsigned long)p;
 	unsigned long start_index = (id * char_count + cpus - 1)/cpus;
 	unsigned long end_index = ((id + 1) * char_count) / cpus;
@@ -137,7 +134,7 @@ static void *do_work(void *p)
 		MD5_init(calc, &rainbow[0], table->length);
 
 		/* Actually compute MD5 */
-		for (int i = 0; i < ENTRIES; i += 3) {
+		for (int i = 0; i < entries; i += 3) {
 			__builtin_prefetch(&rainbow[i + 3]);
 			MD5_quad(calc, &rainbow[i], table->length);
 			check_md5(&rainbow[i]);
@@ -152,6 +149,18 @@ static void *do_work(void *p)
 
 	stopped++;
 	return NULL;
+}
+
+void parse_length(char *optarg)
+{
+	if (strcmp(optarg, "all") == 0)
+		charset = &all_charset;
+	else if (strcmp(optarg, "numeric") == 0)
+		charset = &numeric_charset;
+	else if (strcmp(optarg, "lowercase") == 0)
+		charset = &lowercase_charset;
+	else if (strcmp(optarg, "uppercase") == 0)
+		charset = &uppercase_charset;
 }
 
 void parse_length(char *optarg)
@@ -193,8 +202,11 @@ int main(int argc, char *argv[])
 	start_length = MIN_LENGTH;
 	end_length = MAX_LENGTH;
 
-	while ((c = getopt (argc, argv, "f:l:")) != -1) {
+	while ((c = getopt (argc, argv, "c:f:l:")) != -1) {
 		switch (c) {
+			case 'c':
+				parse_charset(optarg);
+				break;
 			case 'f':
 				file = optarg;
 				break;
@@ -233,8 +245,9 @@ int main(int argc, char *argv[])
 	sigaction(SIGINT, &act, NULL);
 
 	/* Initialize the character array */
-	for (int i = 0; i <= char_count; i++)
-		chars[i] = CHAR_START + i;
+	entries = charset->table_size / ENTRY_SIZE;
+	for (int i = 0; i < charset->count; i++)
+		chars[i] = charset->start + i;
 
 	/* Initialize the CPU count */
 	cpus = num_cpus();
@@ -265,7 +278,7 @@ int main(int argc, char *argv[])
 		pthread_create(&t[i], NULL, do_work, (void *)(unsigned long)i);
 
 	while(stopped == 0 && sleep(1) == 0) {
-		printf("Calculated %lu, %d matches\r", calculated * TABLE_SIZE, match);
+		printf("Calculated %lu, %d matches\r", calculated * charset->table_size, match);
 		fflush(stdout);
 	}
 
@@ -282,7 +295,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Print info */
-	printf("Calculated %lu, %d matches\n", calculated * TABLE_SIZE, match);
+	printf("Calculated %lu, %d matches\n", calculated * charset->table_size, match);
 	printf("Total time: %ld.%06d seconds\n", total_time.tv_sec, total_time.tv_usec);
 	printf("%d populated buckets (%d empty, %d total)\n", buckets_count, buckets_empty, buckets);
 
