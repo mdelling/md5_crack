@@ -19,6 +19,7 @@
 
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <ctype.h>
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
@@ -154,21 +155,71 @@ static void *do_work(void *p)
 	return NULL;
 }
 
+void parse_length(char *optarg)
+{
+	char *delim = strchr(optarg, ':');
+	if (!delim)
+		return;
+
+	*delim = '\0';
+	start_length = atoi(optarg);
+	end_length = atoi(delim + 1) + 1;
+}
+
+void parse_bad_char(char optopt)
+{
+	if (optopt == 'c' || optopt == 'f')
+		fprintf(stderr, "Option -%c requires an argument\n", optopt);
+	else if (isprint(optopt))
+		fprintf(stderr, "Unknown option `-%c'\n", optopt);
+	else
+		fprintf(stderr, "Unknown option character `\\x%x'\n", optopt);
+}
+
 int main(int argc, char *argv[])
 {
 	pthread_t *t;
-	int count = 0;
+	int count = 0, c;
+	char *file = NULL;
 	struct timeval start_time, end_time, total_time;
 
         /* Check arguments */
-	if (argc < 4) {
-		printf("Usage: md5_crack [list] [min_length] [max_length]\n");
+	if (argc < 3) {
+		printf("Usage: md5_crack -f [list] -l [min_length]:[max_length]\n");
 		return 1;
 	}
 
-	/* Initialize the start length */
-	start_length = atoi(argv[2]);
-	end_length = atoi(argv[3]) + 1;
+	/* Parse arguments */
+	opterr = 0;
+	start_length = MIN_LENGTH;
+	end_length = MAX_LENGTH;
+
+	while ((c = getopt (argc, argv, "f:l:")) != -1) {
+		switch (c) {
+			case 'f':
+				file = optarg;
+				break;
+			case 'l':
+				parse_length(optarg);
+				break;
+			case '?':
+				parse_bad_char(optopt);
+				return 1;
+			default:
+				abort ();
+		}
+	}
+
+	/* Check the file */
+	if (!file) {
+		fprintf(stderr, "File required\n");
+		return 1;
+	} else if (access(file, R_OK) == -1) {
+		fprintf(stderr, "Unable to open file %s\n", file);
+		return 1;
+	}
+
+	/* Check the start and end lengths */
 	if (end_length <= MIN_LENGTH || end_length > MAX_LENGTH)
 		end_length = MAX_LENGTH;
 	if (start_length < 3 || start_length >= end_length)
@@ -190,7 +241,7 @@ int main(int argc, char *argv[])
 	cpus = num_cpus();
 
 	/* Get the number of lines */
-	count = read_md5_file(argv[1]);
+	count = read_md5_file(file);
 	if (count == 0) {
 		printf("We didn't find any lines!\n");
 		return 1;

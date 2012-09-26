@@ -8,7 +8,7 @@ all: $(TARGET)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) md5_crack.c
 	$(CC) md5_crack.c $(CFLAGS) $(OBJS) -o bin/md5_crack
 
 .PHONY: all clean
