@@ -236,8 +236,6 @@ int main(int argc, char *argv[])
 	if (start_length < 3 || start_length >= end_length)
 		start_length == 3;
 
-	printf("Checking %d to %d characters\n", start_length, end_length - 1);
-
 	/* Initialize the signal handler */
 	struct sigaction act = { .sa_handler = &terminate, .sa_flags = 0 };
 	sigemptyset(&act.sa_mask);
@@ -259,8 +257,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("Found %d hashes\n", count);
-
 	/* Allocate the pthread structures */
 	t = (pthread_t *)malloc(cpus * sizeof(pthread_t));
 	if (!t) {
@@ -269,6 +265,9 @@ int main(int argc, char *argv[])
 	}
 
 	/* Print number of cores, lock memory space, and start benchmarking */
+	printf("Checking %d to %d characters using charset %s\n",
+		start_length, end_length - 1, charset->name);
+	printf("Found %d hashes\n", count);
 	printf("Found %d CPU cores\n", cpus);
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 	gettimeofday(&start_time, NULL);

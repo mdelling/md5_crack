@@ -33,12 +33,13 @@ typedef struct charset {
 	char end;
 	int table_size;
 	int count;
+	char *name;
 } charset_t;
 
-static charset_t lowercase_charset = { 0x61, 0x7A, 696, 26 };
-static charset_t uppercase_charset = { 0x41, 0x5A, 696, 26 };
-static charset_t numeric_charset = { 0x30, 0x39, 120, 10 };
-static charset_t all_charset = { MIN_CHAR, MAX_CHAR, 9024, 95 };
+static charset_t lowercase_charset = { 0x61, 0x7A, 696, 26, "lowercase" };
+static charset_t uppercase_charset = { 0x41, 0x5A, 696, 26, "uppercase" };
+static charset_t numeric_charset = { 0x30, 0x39, 120, 10, "numeric" };
+static charset_t all_charset = { MIN_CHAR, MAX_CHAR, 9024, 95, "all" };
 static charset_t *charset = &all_charset;
 
 #endif
