@@ -151,7 +151,7 @@ static void *do_work(void *p)
 	return NULL;
 }
 
-void parse_length(char *optarg)
+void parse_charset(char *optarg)
 {
 	if (strcmp(optarg, "all") == 0)
 		charset = &all_charset;
