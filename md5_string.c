@@ -107,7 +107,7 @@ static inline unsigned int calc_bucket_binary(md5_binary_t *hash)
 void check_md5(rainbow_t *r)
 {
 	/* Check for an existing bucket */
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < ENTRY_SIZE; i++) {
 		md5_binary_t *binary = &r->hashes[i], *start;
 		unsigned int bucket = calc_bucket_binary(binary);
 		uint32_t s = array[bucket];

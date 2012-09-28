@@ -27,6 +27,8 @@
 #define MIN_CHAR 0x20
 #define MAX_CHAR 0x7E
 #define MAX_CHARS (MAX_CHAR - MIN_CHAR)
+#define BLOCK_SIZE (STEP_SIZE * ENTRY_SIZE)
+#define MIN_TABLE_SIZE(x) ((((x * x) + BLOCK_SIZE - 1)/BLOCK_SIZE) * BLOCK_SIZE)
 
 typedef struct charset {
 	char start;
@@ -36,9 +38,9 @@ typedef struct charset {
 	char *name;
 } charset_t;
 
-static charset_t lowercase_charset = { 0x61, 0x7A, 696, 26, "lowercase" };
-static charset_t uppercase_charset = { 0x41, 0x5A, 696, 26, "uppercase" };
-static charset_t numeric_charset = { 0x30, 0x39, 120, 10, "numeric" };
+static charset_t lowercase_charset = { 0x61, 0x7A, MIN_TABLE_SIZE(26), 26, "lowercase" };
+static charset_t uppercase_charset = { 0x41, 0x5A, MIN_TABLE_SIZE(26), 26, "uppercase" };
+static charset_t numeric_charset = { 0x30, 0x39, MIN_TABLE_SIZE(10), 10, "numeric" };
 static charset_t all_charset = { MIN_CHAR, MAX_CHAR, 9024, 95, "all" };
 static charset_t *charset = &all_charset;
 

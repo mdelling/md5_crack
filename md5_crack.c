@@ -134,12 +134,11 @@ static void *do_work(void *p)
 		MD5_init(calc, &rainbow[0], table->length);
 
 		/* Actually compute MD5 */
-		for (int i = 0; i < entries; i += 3) {
-			__builtin_prefetch(&rainbow[i + 3]);
+		for (int i = 0; i < entries; i += STEP_SIZE) {
+			__builtin_prefetch(&rainbow[i + STEP_SIZE]);
 			MD5_quad(calc, &rainbow[i], table->length);
-			check_md5(&rainbow[i]);
-			check_md5(&rainbow[i + 1]);
-			check_md5(&rainbow[i + 2]);
+			for (int j = 0; j < STEP_SIZE; j++)
+				check_md5(&rainbow[i + j]);
 		}
 
 		/* Increment the string */
@@ -265,8 +264,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Print number of cores, lock memory space, and start benchmarking */
-	printf("Checking %d to %d characters using charset %s\n",
-		start_length, end_length - 1, charset->name);
+	printf("Checking %d to %d characters using charset %s (%d)\n",
+		start_length, end_length - 1, charset->name, charset->table_size);
 	printf("Found %d hashes\n", count);
 	printf("Found %d CPU cores\n", cpus);
 	mlockall(MCL_CURRENT | MCL_FUTURE);

@@ -25,6 +25,10 @@
 #include <string.h>
 #include <nmmintrin.h>
 
+/* Entry and step sizes */
+#define ENTRY_SIZE 4
+#define STEP_SIZE 3
+
 /* Union wrapper for int and char access to m128i */
 typedef union m128i {
 	__m128i v;
@@ -40,7 +44,6 @@ typedef union md5_raw {
 } md5_binary_t;
 
 /* Four strings and their associated hashes */
-#define ENTRY_SIZE 4
 typedef ALIGNED struct rainbow {
 	m128i_t strings[ENTRY_SIZE];
 	md5_binary_t hashes[ENTRY_SIZE];
