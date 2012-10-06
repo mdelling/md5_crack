@@ -26,7 +26,7 @@
 				bswap64(x->r64[0] + 0xefcdab8967452301), \
 				bswap64(x->r64[1] + 0x1032547698badcfe), y.c);
 #define PRINT_REMAINING(x)	fprintf(remaining, "%016llx%016llx\n", x.r64[0], x.r64[1])
-static uint32_t *array = NULL;
+static int32_t *array = NULL;
 int buckets = 0, buckets_empty = 0, buckets_count = 0, match = 0;
 static int bucket_shift = 0, count = 0;
 
@@ -110,10 +110,10 @@ void check_md5(rainbow_t *r)
 	for (int i = 0; i < ENTRY_SIZE; i++) {
 		md5_binary_t *binary = &r->hashes[i], *start;
 		unsigned int bucket = calc_bucket_binary(binary);
-		uint32_t s = array[bucket];
+		int32_t s = array[bucket];
 
 		/* If its an empty bucket, just bail */
-		if (likely(s == 0))
+		if (likely(s == -1))
 			continue;
 
 		/* Search for a match */
@@ -149,14 +149,14 @@ static md5_binary_t *allocate_buffer(int size)
 static void init_buckets(int count)
 {
 	buckets = 1 << ((int)log2(count) + BUCKETS_MORE);
-	array = (uint32_t *)malloc(buckets * sizeof(uint32_t));
+	array = (int32_t *)malloc(buckets * sizeof(int));
 	if (!array) {
 		printf("%s failed to allocate memory: %d\n", __func__, errno);
 		return;
 	}
 
 	for (int i = 0; i < buckets; i++)
-		array[i] = 0;
+		array[i] = -1;
 
 	bucket_shift =  64 - log2(buckets);
 }
@@ -166,13 +166,13 @@ static void build_buckets(int size)
 	/* Sort the buffer */
 	for (int temp = 0; temp < size; temp++) {
 		unsigned int bucket = calc_bucket_binary(&hash_buff[temp]);
-		if (array[bucket] == 0)
+		if (array[bucket] == -1)
 			array[bucket] = &hash_buff[temp] - &hash_buff[0];
 	}
 
 	/* Compute stats about the buckets */
 	for (int i = 0; i < buckets; i++) {
-		if (array[i] == 0)
+		if (array[i] == -1)
 			buckets_empty++;
 		else
 			buckets_count++;
