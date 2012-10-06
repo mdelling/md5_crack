@@ -231,11 +231,11 @@ void MD5_quad(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
 	/* Compute round 3 blocks */
 	SSE_SHORT_STEP(H_SSE2, a, b, c, d, 5, 32, 4, ROTATE_SSE2)
 	SSE_SHORT_STEP(H_SSE2, d, a, b, c, 8, 33, 11, ROTATE_SSE2)
-	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 11, 34, 16, ROTATE_SSE2)
+	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 11, 34, 16, ROTATE_16_SSE2)
 	SSE_STEP(H_SSE2, b, c, d, a, 4, 35, 23, ROTATE_SSE2) /* 14 -> 4 */
 	SSE_STEP(H_SSE2, a, b, c, d, 1, 36, 4, ROTATE_SSE2)
 	SSE_SHORT_STEP(H_SSE2, d, a, b, c, 4, 37, 11, ROTATE_SSE2)
-	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 7, 38, 16, ROTATE_SSE2)
+	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 7, 38, 16, ROTATE_16_SSE2)
 	SSE_SHORT_STEP(H_SSE2, b, c, d, a, 10, 39, 23, ROTATE_SSE2)
 	SSE_SHORT_STEP(H_SSE2, a, b, c, d, 13, 40, 4, ROTATE_SSE2)
 	SSE_STEP(H_SSE2, d, a, b, c, 0, 41, 11, ROTATE_SSE2)
@@ -243,7 +243,7 @@ void MD5_quad(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
 	SSE_SHORT_STEP(H_SSE2, b, c, d, a, 6, 43, 23, ROTATE_SSE2)
 	SSE_SHORT_STEP(H_SSE2, a, b, c, d, 9, 44, 4, ROTATE_SSE2)
 	SSE_SHORT_STEP(H_SSE2, d, a, b, c, 12, 45, 11, ROTATE_SSE2)
-	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 15, 46, 16, ROTATE_SSE2)
+	SSE_SHORT_STEP(H_SSE2, c, d, a, b, 15, 46, 16, ROTATE_16_SSE2)
 	SSE_STEP(H_SSE2, b, c, d, a, 2, 47, 23, ROTATE_SSE2)
 
 	/* Compute round 4 blocks */
