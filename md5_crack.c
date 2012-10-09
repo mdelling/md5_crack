@@ -295,7 +295,8 @@ int main(int argc, char *argv[])
 	/* Print info */
 	printf("Calculated %lu, %d matches\n", calculated * charset->table_size, match);
 	printf("Total time: %ld.%06d seconds\n", total_time.tv_sec, total_time.tv_usec);
-	printf("%d populated buckets (%d empty, %d total)\n", buckets_count, buckets_empty, buckets);
+	printf("%d populated buckets (%d empty, %d total, %d bits)\n",
+		buckets_count, buckets_empty, buckets, bucket_bits);
 
 	/* Cleanup the ingested hashes */
 	cleanup();

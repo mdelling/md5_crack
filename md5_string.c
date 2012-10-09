@@ -26,9 +26,9 @@
 				bswap64(x->r64[0] + 0xefcdab8967452301), \
 				bswap64(x->r64[1] + 0x1032547698badcfe), y.c);
 #define PRINT_REMAINING(x)	fprintf(remaining, "%016llx%016llx\n", x.r64[0], x.r64[1])
-static int32_t *array = NULL;
-int buckets = 0, buckets_empty = 0, buckets_count = 0, match = 0;
-static int bucket_shift = 0, count = 0;
+static uint32_t *array = NULL;
+int buckets = 0, buckets_empty = 0, buckets_count = 0, match = 0, bucket_bits = 0;
+static int count = 0, bucket_shift = 0;
 
 /* The found and remaining files */
 FILE *found, *remaining;
@@ -110,10 +110,10 @@ void check_md5(rainbow_t *r)
 	for (int i = 0; i < ENTRY_SIZE; i++) {
 		md5_binary_t *binary = &r->hashes[i], *start;
 		unsigned int bucket = calc_bucket_binary(binary);
-		int32_t s = array[bucket];
+		uint32_t s = array[bucket];
 
 		/* If its an empty bucket, just bail */
-		if (likely(s == -1))
+		if (likely(s == UINT32_MAX))
 			continue;
 
 		/* Search for a match */
@@ -149,16 +149,17 @@ static md5_binary_t *allocate_buffer(int size)
 static void init_buckets(int count)
 {
 	buckets = 1 << ((int)log2(count) + BUCKETS_MORE);
-	array = (int32_t *)malloc(buckets * sizeof(int));
+	array = (uint32_t *)malloc(buckets * sizeof(uint32_t));
 	if (!array) {
 		printf("%s failed to allocate memory: %d\n", __func__, errno);
 		return;
 	}
 
 	for (int i = 0; i < buckets; i++)
-		array[i] = -1;
+		array[i] = UINT32_MAX;
 
-	bucket_shift =  64 - log2(buckets);
+	bucket_bits = log2(buckets);
+	bucket_shift =  64 - bucket_bits;
 }
 
 static void build_buckets(int size)
@@ -166,13 +167,13 @@ static void build_buckets(int size)
 	/* Sort the buffer */
 	for (int temp = 0; temp < size; temp++) {
 		unsigned int bucket = calc_bucket_binary(&hash_buff[temp]);
-		if (array[bucket] == -1)
-			array[bucket] = &hash_buff[temp] - &hash_buff[0];
+		if (array[bucket] == UINT32_MAX)
+			array[bucket] = (&hash_buff[temp] - &hash_buff[0]);
 	}
 
 	/* Compute stats about the buckets */
 	for (int i = 0; i < buckets; i++) {
-		if (array[i] == -1)
+		if (array[i] == UINT32_MAX)
 			buckets_empty++;
 		else
 			buckets_count++;

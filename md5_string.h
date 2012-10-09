@@ -26,7 +26,7 @@
 #define HASH_LENGTH 64
 
 /* The buckets for the password list */
-extern int buckets, buckets_empty, buckets_count, match;
+extern int buckets, buckets_empty, buckets_count, match, bucket_bits;
 
 /* Compare a md5_binary_t with the list */
 void check_md5(rainbow_t *r);
