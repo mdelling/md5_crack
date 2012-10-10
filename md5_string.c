@@ -26,9 +26,12 @@
 				bswap64(x->r64[0] + 0xefcdab8967452301), \
 				bswap64(x->r64[1] + 0x1032547698badcfe), y.c);
 #define PRINT_REMAINING(x)	fprintf(remaining, "%016llx%016llx\n", x.r64[0], x.r64[1])
+
 static uint32_t *array = NULL;
+static uint8_t *array_count = NULL;
 int buckets = 0, buckets_empty = 0, buckets_count = 0, match = 0, bucket_bits = 0;
-static int count = 0, bucket_shift = 0;
+static int count = 0, count_bits = 0, bucket_shift = 0, inv_top_bits = 0;
+static uint32_t get_mask = 0, remove_mask = 0;
 
 /* The found and remaining files */
 FILE *found, *remaining;
@@ -104,6 +107,21 @@ static inline unsigned int calc_bucket_binary(md5_binary_t *hash)
 	return hash->r64[0] >> bucket_shift;
 }
 
+static inline uint32_t calc_top_binary(md5_binary_t *hash)
+{
+	return hash->r32[1] << inv_top_bits;
+}
+
+static inline uint32_t get_top(uint32_t value)
+{
+	return value & get_mask;
+}
+
+static inline uint32_t remove_top(uint32_t value)
+{
+	return value & remove_mask;
+}
+
 void check_md5(rainbow_t *r)
 {
 	/* Check for an existing bucket */
@@ -116,8 +134,12 @@ void check_md5(rainbow_t *r)
 		if (likely(s == UINT32_MAX))
 			continue;
 
+		/* If we have a stored top and it doesn't match, continue */
+		if (get_top(s) && (calc_top_binary(binary) != get_top(s)))
+			continue;
+
 		/* Search for a match */
-		for (start = hash_buff + s; start->r64[0] < binary->r64[0]; start++) { }
+		for (start = hash_buff + remove_top(s); start->r64[0] < binary->r64[0]; start++) { }
 		for (; start->r64[0] == binary->r64[0]; start++) {
 			if (start->r64[1] == binary->r64[1]) {
 				PRINT_FOUND(binary, r->strings[i]);
@@ -148,18 +170,32 @@ static md5_binary_t *allocate_buffer(int size)
 
 static void init_buckets(int count)
 {
-	buckets = 1 << ((int)log2(count) + BUCKETS_MORE);
+	/* Figure out all the shift sizes */
+	count_bits = (int)log2(count);
+	bucket_bits = count_bits + BUCKETS_MORE;
+	buckets = 1 << bucket_bits;
+	bucket_shift =  64 - bucket_bits;
+	uint32_t top_bits = 32 - count_bits - 1;
+	inv_top_bits = 32 - top_bits;
+	get_mask = UINT32_MAX << inv_top_bits;
+	remove_mask = UINT32_MAX >> top_bits;
+
 	array = (uint32_t *)malloc(buckets * sizeof(uint32_t));
 	if (!array) {
 		printf("%s failed to allocate memory: %d\n", __func__, errno);
 		return;
 	}
 
+	array_count = (uint8_t *)malloc(buckets * sizeof(uint8_t));
+	if (!array_count) {
+		printf("%s failed to allocate memory: %d\n", __func__, errno);
+		return;
+	}
+
+	memset(array_count, 0, buckets * sizeof(uint8_t));
+
 	for (int i = 0; i < buckets; i++)
 		array[i] = UINT32_MAX;
-
-	bucket_bits = log2(buckets);
-	bucket_shift =  64 - bucket_bits;
 }
 
 static void build_buckets(int size)
@@ -167,8 +203,18 @@ static void build_buckets(int size)
 	/* Sort the buffer */
 	for (int temp = 0; temp < size; temp++) {
 		unsigned int bucket = calc_bucket_binary(&hash_buff[temp]);
-		if (array[bucket] == UINT32_MAX)
+		array_count[bucket]++;
+		if (array[bucket] == UINT32_MAX) {
 			array[bucket] = (&hash_buff[temp] - &hash_buff[0]);
+		}
+	}
+
+	/* Generate the top data */
+	for (int temp = 0; temp < size; temp++) {
+		unsigned int bucket = calc_bucket_binary(&hash_buff[temp]);
+		uint32_t top = calc_top_binary(&hash_buff[temp]);
+		if (array_count[bucket] == 1)
+			array[bucket] |= top;
 	}
 
 	/* Compute stats about the buckets */
