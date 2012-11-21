@@ -34,7 +34,12 @@
 #define H_SSE2(x, y, z) pxor(x, pxor(y, z))
 #define I_SSE2(x, y, z) pxor(y, por(x, pxor(pcmpeqd(z, z), z)))
 #define ROTATE_SSE2(X, s) por(pslld(X, s), psrld(X, 32 - s))
+#ifdef __SSSE3__
+#define rot16_mask _mm_set_epi64x(0x0d0c0f0e09080b0aL, 0x0504070601000302UL)
+#define ROTATE_16_SSE2(X, s) _mm_shuffle_epi8((X), rot16_mask)
+#else
 #define ROTATE_16_SSE2(X, s) _mm_shufflehi_epi16(_mm_shufflelo_epi16(X, 0xB1), 0xB1)
+#endif
 
 /* The MD5 transformation for all four rounds */
 #define SSE_STEP(f, a, b, c, d, x, t, s, R) \
