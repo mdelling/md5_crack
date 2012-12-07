@@ -154,8 +154,8 @@ void check_md5(rainbow_t *r)
 /* Allocate the hash buffer */
 static md5_binary_t *allocate_buffer(int size)
 {
-	size_t buff_size = size * sizeof(md5_binary_t);;
-	md5_binary_t *buff = (md5_binary_t *)malloc(buff_size + 1);
+	size_t buff_size = (size + 1) * sizeof(md5_binary_t);;
+	md5_binary_t *buff = (md5_binary_t *)malloc(buff_size);
 	if (!buff) {
 		printf("%s failed to allocate memory: %d\n", __func__, errno);
 		return NULL;

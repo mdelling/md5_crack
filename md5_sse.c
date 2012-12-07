@@ -148,7 +148,7 @@ SCALIGNED m128i_t storage[64] = { { .i = { 0xd76aa478, 0xd76aa478, 0xd76aa478, 0
 /* Zero out the buffer */
 void MD5_init_once(md5_calc_t *calc)
 {
-	memset(calc->vbuffer, 0, 16 * 5 * 3);
+	memset(calc->vbuffer, 0, 16 * 3);
 }
 
 /* Initialize for this size */
