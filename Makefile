@@ -1,4 +1,5 @@
-CFLAGS := -dead_strip -Os -msse4.2 -std=gnu99
+CFLAGS := -Os -msse4.2 -std=gnu99 -flax-vector-conversions
+LIBS := -lpthread -lm
 CC := gcc
 OBJS := cpus.o md5_sse.o md5_string.o
 TARGET := bin/md5_crack
@@ -9,7 +10,7 @@ all: $(TARGET)
 	$(CC) -c $(CFLAGS) $< -o $@
 
 $(TARGET): $(OBJS) md5_crack.c
-	$(CC) md5_crack.c $(CFLAGS) $(OBJS) -o bin/md5_crack
+	$(CC) md5_crack.c $(CFLAGS) $(OBJS) $(LIBS) -o bin/md5_crack
 
 .PHONY: all clean
 clean:
