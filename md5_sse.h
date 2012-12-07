@@ -55,7 +55,8 @@ typedef struct md5_calc {
 	ALIGNED m128i_t b[3];
 	ALIGNED m128i_t c[3];
 	ALIGNED m128i_t d[3];
-	ALIGNED m128i_t vbuffer[3][5];
+	ALIGNED m128i_t vbuffer[3];
+	ALIGNED m128i_t common[4];
 	ALIGNED m128i_t iv;
 	ALIGNED int size_i, size_j;
 } md5_calc_t;
