@@ -148,11 +148,11 @@ SCALIGNED m128i_t storage[64] = { { .i = { 0xd76aa478, 0xd76aa478, 0xd76aa478, 0
 /* Zero out the buffer */
 void MD5_init_once(md5_calc_t *calc)
 {
-	memset(calc->vbuffer, 0, 16 * 3);
+	memset(calc, 0, sizeof(calc));
 }
 
 /* Initialize for this size */
-void MD5_init(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
+void MD5_init(md5_calc_t *calc, m128i_t *suffix, unsigned long size)
 {
 	uint32_t val = (size << 3);
 	calc->size_i = size / 4;
@@ -167,13 +167,9 @@ void MD5_init(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
 	calc->common[3].i[3] = val;
 
 	/* Fill the rest of the common buffer */
-	__m128i T0 = _mm_unpacklo_epi32(rainbow[0].strings[0].v, rainbow[0].strings[1].v);
-	__m128i T1 = _mm_unpacklo_epi32(rainbow[0].strings[2].v, rainbow[0].strings[3].v);
-	__m128i T2 = _mm_unpackhi_epi32(rainbow[0].strings[0].v, rainbow[0].strings[1].v);
-	__m128i T3 = _mm_unpackhi_epi32(rainbow[0].strings[2].v, rainbow[0].strings[3].v);
-	calc->common[0].v = _mm_unpackhi_epi64(T0, T1);
-	calc->common[1].v = _mm_unpacklo_epi64(T2, T3);
-	calc->common[2].v = _mm_unpackhi_epi64(T2, T3);
+	calc->common[0].v = _mm_shuffle_epi32(suffix->v, 0x00);
+	calc->common[1].v = _mm_shuffle_epi32(suffix->v, 0x55);
+	calc->common[2].v = _mm_shuffle_epi32(suffix->v, 0xAA);
 
 	if (size >= 4)
 		calc->common[calc->size_i - 1].v = por(calc->iv.v, calc->common[calc->size_i - 1].v);
@@ -188,15 +184,9 @@ void MD5_quad(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
 	calc->d[0].v = calc->d[1].v = calc->d[2].v = ivd.v;
 
 	/* Copy user data into vector buffer */
-	__m128i T0 = _mm_unpacklo_epi32(rainbow[0].strings[0].v, rainbow[0].strings[1].v);
-	__m128i T1 = _mm_unpacklo_epi32(rainbow[0].strings[2].v, rainbow[0].strings[3].v);
-	__m128i T2 = _mm_unpacklo_epi32(rainbow[1].strings[0].v, rainbow[1].strings[1].v);
-	__m128i T3 = _mm_unpacklo_epi32(rainbow[1].strings[2].v, rainbow[1].strings[3].v);
-	__m128i T4 = _mm_unpacklo_epi32(rainbow[2].strings[0].v, rainbow[2].strings[1].v);
-	__m128i T5 = _mm_unpacklo_epi32(rainbow[2].strings[2].v, rainbow[2].strings[3].v);
-	calc->vbuffer[0].v = _mm_unpacklo_epi64(T0, T1);
-	calc->vbuffer[1].v = _mm_unpacklo_epi64(T2, T3);
-	calc->vbuffer[2].v = _mm_unpacklo_epi64(T4, T5);
+	calc->vbuffer[0] = rainbow[0].prefixes;
+	calc->vbuffer[1] = rainbow[1].prefixes;
+	calc->vbuffer[2] = rainbow[2].prefixes;
 
 	if (size < 4) {
 		calc->vbuffer[0].v = por(calc->iv.v, calc->vbuffer[0].v);

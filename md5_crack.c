@@ -24,22 +24,15 @@
 #include <pthread.h>
 #include <signal.h>
 
-#include "charset.h"
 #include "cpus.h"
 #include "md5_string.h"
-#include "md5.h"
+#include "prefix_list.h"
 
 #define MIN_LENGTH 3
 #define MAX_LENGTH 16
 
-/* Structure to store strings */
-typedef __attribute__ ((aligned(16))) struct string_table {
-	rainbow_t rainbow[MAX_ENTRIES];
-	int length;
-} string_table_t;
-
 /* Counters and quit flag */
-static int cpus, entries;
+static int cpus, entries, prefix_mode = 0, min_length;
 static int start_length = MIN_LENGTH, end_length = MAX_LENGTH;
 static unsigned long calculated = 0, stopped = 0, quit = 0;
 static char chars[MAX_CHARS + 1];
@@ -48,19 +41,17 @@ static char chars[MAX_CHARS + 1];
 static void terminate(int signum) { quit = 1; }
 
 /* Initialize a buffer */
-static void init_string_table(string_table_t *table, const char start, int length)
+static void _init_string_table(string_table_t *table, const char start, int length)
 {
 	char temp1 = charset->start, temp2 = charset->start;
-	table->length = length;
-	memset(&table->rainbow, 0, sizeof(rainbow_t) * entries);
 
 	for (int i = 0; i < entries; i++) {
 		for (int j = 0; j < ENTRY_SIZE; j++) {
-			table->rainbow[i].strings[j].c[0] = temp1;
-			table->rainbow[i].strings[j].c[1] = temp2;
-			table->rainbow[i].strings[j].c[2] = start;
-			for (int k = 3; k < length; k++)
-				table->rainbow[i].strings[j].c[k] = charset->start;
+			table->rainbow[i].prefixes.c[j * 4 + 0] = temp1;
+			table->rainbow[i].prefixes.c[j * 4 + 1] = temp2;
+			table->rainbow[i].prefixes.c[j * 4 + 2] = start;
+			if (length > 3)
+				table->rainbow[i].prefixes.c[j * 4 + 3] = charset->start;
 
 			if (temp2 == charset->end) {
 				temp2 = charset->start;
@@ -69,6 +60,35 @@ static void init_string_table(string_table_t *table, const char start, int lengt
 				temp2++;
 		}
 	}
+
+	for (int k = 4; k < length; k++)
+		table->suffix.c[k - 4] = charset->start;
+}
+
+static void prefix_init_string_table(string_table_t *table, const char start, int length)
+{
+	for (int i = 0; i < entries; i++) {
+		for (int j = 0; j < ENTRY_SIZE; j++) {
+			table->rainbow[i].prefixes.c[j * 4 + 0] = (*prefix)[i * ENTRY_SIZE + j][0];
+			table->rainbow[i].prefixes.c[j * 4 + 1] = (*prefix)[i * ENTRY_SIZE + j][1];
+			table->rainbow[i].prefixes.c[j * 4 + 2] = (*prefix)[i * ENTRY_SIZE + j][2];
+			table->rainbow[i].prefixes.c[j * 4 + 3] = start;
+		}
+	}
+
+	for (int k = 4; k < length; k++)
+		table->suffix.c[k - 4] = charset->start;
+}
+
+static void init_string_table(string_table_t *table, const char start, int length)
+{
+	table->length = length;
+	memset(&table->rainbow, 0, sizeof(rainbow_t) * entries);
+
+	if (prefix_mode)
+		prefix_init_string_table(table, start, length);
+	else
+		_init_string_table(table, start, length);
 }
 
 /* Increment a string */
@@ -76,31 +96,38 @@ static void inc_string(string_table_t *table, const char start, const char end)
 {
 	for (int i = table->length - 1; i > 1; i--) {
 		char temp = charset->start;
-		if (i == 2 && table->rainbow[0].strings[0].c[i] == end)
+		char curr = (i < 4) ? table->rainbow[0].prefixes.c[i] : table->suffix.c[i - 4];
+		if (i == min_length - 1 && curr == end)
 			temp = start;
-		else if (table->rainbow[0].strings[0].c[i] < charset->end)
-			temp = table->rainbow[0].strings[0].c[i] + 1;
+		else if (curr < charset->end)
+			temp = curr + 1;
 
-		for (int j = 0; j < entries; j++) {
-			table->rainbow[j].strings[0].c[i] = temp;
-			table->rainbow[j].strings[1].c[i] = temp;
-			table->rainbow[j].strings[2].c[i] = temp;
-			table->rainbow[j].strings[3].c[i] = temp;
-		}
+		if (i < 4) {
+			for (int j = 0; j < entries; j++) {
+				table->rainbow[j].prefixes.c[i] = temp;
+				table->rainbow[j].prefixes.c[i + 4] = temp;
+				table->rainbow[j].prefixes.c[i + 8] = temp;
+				table->rainbow[j].prefixes.c[i + 12] = temp;
+			}
+		} else
+			table->suffix.c[i - 4] = temp;
 
-		if (i == 2 && temp == start)
+		if (i == min_length - 1 && temp == start)
 			break;
 		else if (temp != charset->start)
 			return;
 	}
 
 	table->length++;
-	for (int j = 0; j < entries; j++) {
-		table->rainbow[j].strings[0].c[table->length - 1] = charset->start;
-		table->rainbow[j].strings[1].c[table->length - 1] = charset->start;
-		table->rainbow[j].strings[2].c[table->length - 1] = charset->start;
-		table->rainbow[j].strings[3].c[table->length - 1] = charset->start;
-	}
+	if (table->length <= 4) {
+		for (int j = 0; j < entries; j++) {
+			table->rainbow[j].prefixes.c[table->length - 1] = charset->start;
+			table->rainbow[j].prefixes.c[table->length + 3] = charset->start;
+			table->rainbow[j].prefixes.c[table->length + 7] = charset->start;
+			table->rainbow[j].prefixes.c[table->length + 11] = charset->start;
+		}
+	} else
+		table->suffix.c[table->length - 5] = charset->start;
 }
 
 /* Actually do work */
@@ -131,14 +158,14 @@ static void *do_work(void *p)
 
 	do {
 		/* Initialize the data structures */
-		MD5_init(calc, &rainbow[0], table->length);
+		MD5_init(calc, &table->suffix, table->length);
 
 		/* Actually compute MD5 */
 		for (int i = 0; i < entries; i += STEP_SIZE) {
 			__builtin_prefetch(&rainbow[i + STEP_SIZE]);
 			MD5_quad(calc, &rainbow[i], table->length);
 			for (int j = 0; j < STEP_SIZE; j++)
-				check_md5(&rainbow[i + j]);
+				check_md5(&rainbow[i + j], table);
 		}
 
 		/* Increment the string */
@@ -173,6 +200,20 @@ void parse_length(char *optarg)
 	end_length = atoi(delim + 1) + 1;
 }
 
+void parse_prefix(char *optarg)
+{
+	if (strcmp(optarg, "lowercase") == 0)
+		prefix = &lowercase_prefixes;
+	else if (strcmp(optarg, "numeric") == 0)
+		prefix = &numeric_prefixes;
+	else if (strcmp(optarg, "camel") == 0)
+		prefix = &camel_prefixes;
+	if (prefix) {
+		prefix_mode = 1;
+		printf("Using %s prefixes\n", optarg);
+	}
+}
+
 void parse_bad_char(char optopt)
 {
 	if (optopt == 'c' || optopt == 'f')
@@ -186,7 +227,7 @@ void parse_bad_char(char optopt)
 int main(int argc, char *argv[])
 {
 	pthread_t *t;
-	int count = 0, c;
+	int count = 0, c, calc_size;
 	char *file = NULL;
 	struct timeval start_time, end_time, total_time;
 
@@ -201,7 +242,10 @@ int main(int argc, char *argv[])
 	start_length = MIN_LENGTH;
 	end_length = MAX_LENGTH;
 
-	while ((c = getopt (argc, argv, "c:f:l:")) != -1) {
+	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
+	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
+
+	while ((c = getopt (argc, argv, "c:f:l:p:")) != -1) {
 		switch (c) {
 			case 'c':
 				parse_charset(optarg);
@@ -211,6 +255,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'l':
 				parse_length(optarg);
+				break;
+			case 'p':
+				parse_prefix(optarg);
 				break;
 			case '?':
 				parse_bad_char(optopt);
@@ -229,11 +276,22 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/* Switch values based on prefix mode */
+	if (prefix_mode) {
+		calc_size = PREFIX_TABLE_SIZE;
+		entries = PREFIX_TABLE_SIZE / ENTRY_SIZE;
+		min_length = MIN_PREFIX_LENGTH;
+	} else {
+		calc_size = charset->table_size;
+		entries = charset->table_size / ENTRY_SIZE;
+		min_length = MIN_LENGTH;
+	}
+
 	/* Check the start and end lengths */
 	if (end_length <= MIN_LENGTH || end_length > MAX_LENGTH)
 		end_length = MAX_LENGTH;
-	if (start_length < 3 || start_length >= end_length)
-		start_length == 3;
+	if (start_length < min_length || start_length >= end_length)
+		start_length == min_length;
 
 	/* Initialize the signal handler */
 	struct sigaction act = { .sa_handler = &terminate, .sa_flags = 0 };
@@ -242,7 +300,6 @@ int main(int argc, char *argv[])
 	sigaction(SIGINT, &act, NULL);
 
 	/* Initialize the character array */
-	entries = charset->table_size / ENTRY_SIZE;
 	for (int i = 0; i < charset->count; i++)
 		chars[i] = charset->start + i;
 
@@ -276,7 +333,7 @@ int main(int argc, char *argv[])
 		pthread_create(&t[i], NULL, do_work, (void *)(unsigned long)i);
 
 	while(stopped == 0 && sleep(1) == 0) {
-		printf("Calculated %lu, %d matches\r", calculated * charset->table_size, match);
+		printf("Calculated %lu, %d matches\r", calculated * calc_size, match);
 		fflush(stdout);
 	}
 
@@ -293,7 +350,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Print info */
-	printf("Calculated %lu, %d matches\n", calculated * charset->table_size, match);
+	printf("Calculated %lu, %d matches\n", calculated * calc_size, match);
 	printf("Total time: %ld.%06d seconds\n", total_time.tv_sec, total_time.tv_usec);
 	printf("%d populated buckets (%d empty, %d total, %d bits)\n",
 		buckets_count, buckets_empty, buckets, bucket_bits);

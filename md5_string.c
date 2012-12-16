@@ -22,10 +22,6 @@
 /* The buckets for the password list, and a -1 filled md5 */
 #define BUCKETS_MORE 3
 #define bswap64(x) (uint64_t)__builtin_bswap64(x)
-#define PRINT_FOUND(x, y)	fprintf(found, "%016llx%016llx:%s\n", \
-				bswap64(x->r64[0] + 0xefcdab8967452301), \
-				bswap64(x->r64[1] + 0x1032547698badcfe), y.c);
-#define PRINT_REMAINING(x)	fprintf(remaining, "%016llx%016llx\n", x.r64[0], x.r64[1])
 
 static uint32_t *array = NULL;
 static uint8_t *array_count = NULL;
@@ -77,14 +73,31 @@ static void md5_binary(const char *val, md5_binary_t *result)
 	result->r32[3] -= 0x10325476;
 }
 
-static void reverse_md5_binary(md5_binary_t *val)
+static void md5_binary_reverse(md5_binary_t *value)
 {
-	val->r32[3] += 0x10325476;
-	val->r32[2] += 0x98badcfe;
-	val->r32[1] += 0xefcdab89;
-	val->r32[0] += 0x67452301;
-	val->r64[1] = bswap64(val->r64[1]);
-	val->r64[0] = bswap64(val->r64[0]);
+	value->r32[0] += 0x67452301;
+	value->r32[1] += 0xefcdab89;
+	value->r32[2] += 0x98badcfe;
+	value->r32[3] += 0x10325476;
+	value->r64[0] = bswap64(value->r64[0]);
+	value->r64[1] = bswap64(value->r64[1]);
+}
+
+static void print_found(rainbow_t *rainbow, int i, string_table_t *table)
+{
+	char string[16];
+	md5_binary_t temp = rainbow->hashes[i];
+	md5_binary_reverse(&temp);
+	memcpy(string, &rainbow->prefixes.c[4 * i], 4);
+	memcpy(string + 4, table->suffix.c, 12);
+	fprintf(found, "%016llx%016llx:%s\n", temp.r64[0], temp.r64[1], string);
+}
+
+static void print_remaining(md5_binary_t *hash)
+{
+	md5_binary_t temp = *hash;
+	md5_binary_reverse(&temp);
+	fprintf(remaining, "%016llx%016llx\n", temp.r64[0], temp.r64[1]);
 }
 
 static int compare_md5(const void *e1, const void *e2)
@@ -122,7 +135,7 @@ static inline uint32_t remove_top(uint32_t value)
 	return value & remove_mask;
 }
 
-void check_md5(rainbow_t *r)
+void check_md5(rainbow_t *r, string_table_t *table)
 {
 	/* Check for an existing bucket */
 	for (int i = 0; i < ENTRY_SIZE; i++) {
@@ -142,7 +155,7 @@ void check_md5(rainbow_t *r)
 		for (start = hash_buff + remove_top(s); start->r64[0] < binary->r64[0]; start++) { }
 		for (; start->r64[0] == binary->r64[0]; start++) {
 			if (start->r64[1] == binary->r64[1]) {
-				PRINT_FOUND(binary, r->strings[i]);
+				print_found(r, i, table);
 				start->r64[1] = 0;
 				__sync_fetch_and_add(&match, 1);
 				break;
@@ -285,10 +298,8 @@ void cleanup()
 {
 	/* Dump remaining passwords to the remaining file */
 	for (int i = 0; i < count; i++) {
-		if (hash_buff[i].r64[1] != 0) {
-			reverse_md5_binary(&hash_buff[i]);
-			PRINT_REMAINING(hash_buff[i]);
-		}
+		if (hash_buff[i].r64[1] != 0)
+			print_remaining(&hash_buff[i]);
 	}
 
 	fclose(found);

@@ -20,7 +20,7 @@
 #ifndef MD5_SSE_H
 #define MD5_SSE_H
 
-#include "md5.h"
+#include "common.h"
 #include <stdint.h>
 #include <string.h>
 #include <nmmintrin.h>
@@ -45,24 +45,25 @@ typedef union md5_raw {
 
 /* Four strings and their associated hashes */
 typedef ALIGNED struct rainbow {
-	m128i_t strings[ENTRY_SIZE];
 	md5_binary_t hashes[ENTRY_SIZE];
+	m128i_t prefixes; /* Four four-letter prefixes */
+//	m128i_t suffix;
 } rainbow_t;
 
 /* Per run data structures */
 typedef struct md5_calc {
-	ALIGNED m128i_t a[3];
-	ALIGNED m128i_t b[3];
-	ALIGNED m128i_t c[3];
-	ALIGNED m128i_t d[3];
-	ALIGNED m128i_t vbuffer[3];
-	ALIGNED m128i_t common[4];
+	ALIGNED m128i_t a[STEP_SIZE];
+	ALIGNED m128i_t b[STEP_SIZE];
+	ALIGNED m128i_t c[STEP_SIZE];
+	ALIGNED m128i_t d[STEP_SIZE];
+	ALIGNED m128i_t vbuffer[STEP_SIZE];
+	ALIGNED m128i_t common[4]; /* Common bytes 1,2,3 and 14 */
 	ALIGNED m128i_t iv;
 	ALIGNED int size_i, size_j;
 } md5_calc_t;
 
 extern void MD5_init_once(md5_calc_t *calc);
-extern void MD5_init(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size);
+extern void MD5_init(md5_calc_t *calc, m128i_t *suffix, unsigned long size);
 extern void MD5_quad(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size);
 
 #endif
