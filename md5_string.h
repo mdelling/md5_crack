@@ -21,6 +21,8 @@
 #define MD5_STRING_H
 
 #include "string_table.h"
+#include <errno.h>
+#include <inttypes.h>
 #include <math.h>
 
 #define HASH_LENGTH 64

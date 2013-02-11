@@ -90,14 +90,14 @@ static void print_found(rainbow_t *rainbow, int i, string_table_t *table)
 	md5_binary_reverse(&temp);
 	memcpy(string, &rainbow->prefixes.c[4 * i], 4);
 	memcpy(string + 4, table->suffix.c, 12);
-	fprintf(found, "%016llx%016llx:%s\n", temp.r64[0], temp.r64[1], string);
+	fprintf(found, "%016" PRIx64 "%016" PRIx64 ":%s\n", temp.r64[0], temp.r64[1], string);
 }
 
 static void print_remaining(md5_binary_t *hash)
 {
 	md5_binary_t temp = *hash;
 	md5_binary_reverse(&temp);
-	fprintf(remaining, "%016llx%016llx\n", temp.r64[0], temp.r64[1]);
+	fprintf(remaining, "%016" PRIx64 "%016" PRIx64 "\n", temp.r64[0], temp.r64[1]);
 }
 
 static int compare_md5(const void *e1, const void *e2)
