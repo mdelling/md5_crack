@@ -231,6 +231,9 @@ int main(int argc, char *argv[])
 	char *file = NULL;
 	struct timeval start_time, end_time, total_time;
 
+	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
+	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
+
         /* Check arguments */
 	if (argc < 3) {
 		printf("Usage: md5_crack -f [list] -l [min_length]:[max_length]\n");
@@ -241,9 +244,6 @@ int main(int argc, char *argv[])
 	opterr = 0;
 	start_length = MIN_LENGTH;
 	end_length = MAX_LENGTH;
-
-	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
-	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
 
 	while ((c = getopt (argc, argv, "c:f:l:p:")) != -1) {
 		switch (c) {
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 				parse_bad_char(optopt);
 				return 1;
 			default:
-				abort ();
+				abort();
 		}
 	}
 
@@ -304,7 +304,11 @@ int main(int argc, char *argv[])
 		chars[i] = charset->start + i;
 
 	/* Initialize the CPU count */
+#ifdef OPENCL
+	cpus = 1;
+#else
 	cpus = num_cpus();
+#endif
 
 	/* Get the number of lines */
 	count = read_md5_file(file);
