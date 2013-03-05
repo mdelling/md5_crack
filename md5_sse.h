@@ -47,7 +47,6 @@ typedef union md5_raw {
 typedef ALIGNED struct rainbow {
 	md5_binary_t hashes[ENTRY_SIZE];
 	m128i_t prefixes; /* Four four-letter prefixes */
-//	m128i_t suffix;
 } rainbow_t;
 
 /* Per run data structures */

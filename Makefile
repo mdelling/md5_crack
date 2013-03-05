@@ -3,8 +3,8 @@ CLCFLAGS := $(CFLAGS) -I/usr/include/nvidia-current-updates/
 LIBS := -lpthread -lm
 CLLIBS = $(LIBS) -lOpenCL
 CC := gcc
-OBJS := cpus.o md5_sse.o md5_string.o
-CL_OBJS := cpus.o md5_cl.o md5_string.o
+OBJS := cpus.o md5_sse.o md5_string.o prefix_list.o string_table.o
+CL_OBJS := cpus.o md5_cl.o md5_string.o prefix_list.o string_table.o
 TARGET := bin/md5_crack
 TARGET_CL := bin/md5_crack_cl
 
