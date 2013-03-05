@@ -1,8 +1,6 @@
 #include "string_table.h"
 
-//static char (*prefix)[PREFIX_TABLE_SIZE][PREFIX_LENGTH] = NULL;
-
-void init_string_table(string_table_t *table, charset_t *charset, int length)
+void string_table_init(string_table_t *table, charset_t *charset, int length)
 {
 	memset(table, 0, sizeof(string_table_t));
 	table->length = length;
@@ -49,7 +47,7 @@ static void prefix_init_string_table(string_table_t *table, const char start)
 	}
 }
 
-void fill_string_table(string_table_t *table, const char start)
+void string_table_fill(string_table_t *table, const char start)
 {
 	if (table->prefix) {
 		table->entries = PREFIX_TABLE_SIZE / ENTRY_SIZE;
@@ -66,7 +64,7 @@ void fill_string_table(string_table_t *table, const char start)
 }
 
 /* Increment a string */
-void inc_string(string_table_t *table, const char start, const char end)
+void string_table_increment(string_table_t *table, const char start, const char end)
 {
 	for (int i = table->length - 1; i > 1; i--) {
 		char temp = charset->start;

@@ -59,8 +59,9 @@ static void *do_work(void *p)
 	}
 
 	/* Initialize data structure */
-	init_string_table(table, charset, start_length);
-	fill_string_table(table, start);
+	string_table_init(table, charset, start_length);
+	string_table_fill(table, start);
+	string_table_set_prefix(table, prefix);
 	rainbow = table->rainbow;
 	MD5_init_once(calc);
 
@@ -77,7 +78,7 @@ static void *do_work(void *p)
 		}
 
 		/* Increment the string */
-		inc_string(table, start, end);
+		string_table_increment(table, start, end);
 		__sync_fetch_and_add(&calculated, 1);
 	} while(table->length < end_length && !quit);
 

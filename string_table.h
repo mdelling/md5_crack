@@ -40,8 +40,9 @@ typedef ALIGNED struct string_table {
 	m128i_t suffix;
 } string_table_t;
 
-void init_string_table(string_table_t *table, charset_t *charset, int length);
-void fill_string_table(string_table_t *table, const char start);
-void inc_string(string_table_t *table, const char start, const char end);
+void string_table_init(string_table_t *table, charset_t *charset, int length);
+void string_table_set_prefix(string_table_t *table, char (*prefix)[PREFIX_TABLE_SIZE][PREFIX_LENGTH]);
+void string_table_fill(string_table_t *table, const char start);
+void string_table_increment(string_table_t *table, const char start, const char end);
 
 #endif
