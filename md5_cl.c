@@ -64,11 +64,11 @@ void MD5_init_once(md5_calc_t *calc)
 	assert(ret == CL_SUCCESS);
 
 	/* Create Memory Buffer for key */
-	memobj1 = clCreateBuffer(context, CL_MEM_READ_ONLY, 128, NULL, &ret);
+	memobj1 = clCreateBuffer(context, CL_MEM_READ_ONLY, 256, NULL, &ret);
 	assert(ret == CL_SUCCESS);
 
 	/* Create Memory Buffer for hash */
-	memobj2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 128, NULL, &ret);
+	memobj2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 256, NULL, &ret);
 	assert(ret == CL_SUCCESS);
 
 	/* Create Kernel Program from the source */
@@ -94,34 +94,40 @@ void MD5_init_once(md5_calc_t *calc)
 /* Initialize for this size */
 void MD5_init(md5_calc_t *calc, m128i_t *suffix, unsigned long size)
 {
-	/* Copy suffix */
-	for (int i = 1; i < 4; i++)
-		calc->key[i] = suffix->i[i - 1];
+	calc->size_i = size / 4, calc->size_j = size % 4;
+	calc->iv = 0x80 << (8 * calc->size_j);
 
-	/* Fill bytes 57-60 */
-	calc->key[14] = (size << 3);
+	/* Copy suffix */
+	for (int i = 0; i < 3; i++)
+		calc->suffix[i] = suffix->i[i];
+
+	/* Fill bytes 57-60 and add IV */
+	calc->suffix[13] = (size << 3);
+	if (calc->size_i > 0)
+		calc->suffix[calc->size_i - 1] |= calc->iv;
 }
 
 /* Do 12 MD5 calculations */
 void MD5_quad(md5_calc_t *calc, rainbow_t *rainbow, unsigned long size)
 {
-	int size_i = size / 4, size_j = size % 4;
-	int iv = 0x80 << (8 * size_j);
+	size_t global = ENTRY_SIZE;
 
 	/* For each of our three steps */
-	for (int step = 0; step < 3; step++) {
+	for (int step = 0; step < STEP_SIZE; step++) {
 		rainbow_t *r = &rainbow[step];
 
 		/* For each of our four entries */
 		for (int i = 0; i < ENTRY_SIZE; i++) {
 			/* Copy prefix bytes */
-			calc->key[0] = r->prefixes.i[i];
-			calc->key[size_i] |= iv;
-			clEnqueueWriteBuffer(command_queue, memobj1, CL_TRUE,
-					     0, 64, calc, 0, NULL, NULL);
-			clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
-			clEnqueueReadBuffer(command_queue, memobj2, CL_TRUE,
-					    0, 16, &r->hashes[i], 0, NULL, NULL);
+			calc->prefixes[i] = r->prefixes.i[i];
+			if (calc->size_i == 0)
+				calc->prefixes[i] |= calc->iv;
 		}
+
+		clEnqueueWriteBuffer(command_queue, memobj1, CL_TRUE,
+				     0, sizeof(md5_calc_t), calc, 0, NULL, NULL);
+		clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global, NULL, 0, NULL, NULL);
+		clEnqueueReadBuffer(command_queue, memobj2, CL_TRUE,
+				    0, sizeof(md5_binary_t) * ENTRY_SIZE, r, 0, NULL, NULL);
 	}
 }

@@ -45,6 +45,13 @@ typedef union m128i {
 	unsigned char c[16];
 } m128i_t;
 
+/* Union wrapper for int and char access to m128i */
+typedef union m384i {
+	__m128i v[3];
+	uint32_t i[12];
+	unsigned char c[48];
+} m384i_t;
+
 /* MD5 data structure */
 typedef union md5_raw {
 	uint64_t r64[2];
@@ -60,7 +67,9 @@ typedef ALIGNED struct rainbow {
 
 /* Per run data structures */
 typedef struct md5_calc {
-	uint32_t key[16];
+	uint32_t prefixes[ENTRY_SIZE];
+	uint32_t suffix[15];
+	int size_i, size_j, iv;
 } md5_calc_t;
 
 extern void MD5_init_once(md5_calc_t *calc);

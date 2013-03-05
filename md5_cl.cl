@@ -29,18 +29,23 @@
 	(a) = (((a) << (s)) | (((a) & 0xffffffff) >> (32 - (s)))); \
 	(a) += (b);
 
-#define GET(i) (key[(i)])
+#define GETP(i) (key[(i + idx)])
+#define GET(i) (key[(i + 3)])
 
-__kernel void MD5_hash(__global uint *key, __global uint *hash)
+__kernel void MD5_hash(__global uint *key, __global uint* hashes)
 {
+	const int idx = get_global_id(0);
+
 	uint a, b, c, d;
 	a = 0x67452301;
 	b = 0xefcdab89;
 	c = 0x98badcfe;
 	d = 0x10325476;
 
+	__global uint *hash = hashes + (4 * idx);
+
 	/* Round 1 */
-	STEP(F, a, b, c, d, GET(0), 0xd76aa478, 7)
+	STEP(F, a, b, c, d, GETP(0), 0xd76aa478, 7)
 	STEP(F, d, a, b, c, GET(1), 0xe8c7b756, 12)
 	STEP(F, c, d, a, b, GET(2), 0x242070db, 17)
 	STEP(F, b, c, d, a, GET(3), 0xc1bdceee, 22)
@@ -61,7 +66,7 @@ __kernel void MD5_hash(__global uint *key, __global uint *hash)
 	STEP(G, a, b, c, d, GET(1), 0xf61e2562, 5)
 	STEP(G, d, a, b, c, GET(6), 0xc040b340, 9)
 	STEP(G, c, d, a, b, GET(11), 0x265e5a51, 14)
-	STEP(G, b, c, d, a, GET(0), 0xe9b6c7aa, 20)
+	STEP(G, b, c, d, a, GETP(0), 0xe9b6c7aa, 20)
 	STEP(G, a, b, c, d, GET(5), 0xd62f105d, 5)
 	STEP(G, d, a, b, c, GET(10), 0x02441453, 9)
 	STEP(G, c, d, a, b, GET(15), 0xd8a1e681, 14)
@@ -85,7 +90,7 @@ __kernel void MD5_hash(__global uint *key, __global uint *hash)
 	STEP(H, c, d, a, b, GET(7), 0xf6bb4b60, 16)
 	STEP(H, b, c, d, a, GET(10), 0xbebfbc70, 23)
 	STEP(H, a, b, c, d, GET(13), 0x289b7ec6, 4)
-	STEP(H, d, a, b, c, GET(0), 0xeaa127fa, 11)
+	STEP(H, d, a, b, c, GETP(0), 0xeaa127fa, 11)
 	STEP(H, c, d, a, b, GET(3), 0xd4ef3085, 16)
 	STEP(H, b, c, d, a, GET(6), 0x04881d05, 23)
 	STEP(H, a, b, c, d, GET(9), 0xd9d4d039, 4)
@@ -94,7 +99,7 @@ __kernel void MD5_hash(__global uint *key, __global uint *hash)
 	STEP(H, b, c, d, a, GET(2), 0xc4ac5665, 23)
 
 	/* Round 4 */
-	STEP(I, a, b, c, d, GET(0), 0xf4292244, 6)
+	STEP(I, a, b, c, d, GETP(0), 0xf4292244, 6)
 	STEP(I, d, a, b, c, GET(7), 0x432aff97, 10)
 	STEP(I, c, d, a, b, GET(14), 0xab9423a7, 15)
 	STEP(I, b, c, d, a, GET(5), 0xfc93a039, 21)
