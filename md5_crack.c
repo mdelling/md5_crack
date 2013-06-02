@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
 	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
 
-	while ((c = getopt (argc, argv, "c:f:l:p:")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:l:p:")) != -1) {
 		switch (c) {
 			case 'c':
 				parse_charset(optarg);
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 				parse_bad_char(optopt);
 				return 1;
 			default:
-				abort ();
+				abort();
 		}
 	}
 
