@@ -26,109 +26,16 @@
 
 #include "cpus.h"
 #include "md5_string.h"
-#include "prefix_list.h"
-
-#define MIN_LENGTH 3
-#define MAX_LENGTH 16
 
 /* Counters and quit flag */
-static int cpus, entries, prefix_mode = 0, min_length;
+static int cpus, min_length;
 static int start_length = MIN_LENGTH, end_length = MAX_LENGTH;
 static unsigned long calculated = 0, stopped = 0, quit = 0;
 static char chars[MAX_CHARS + 1];
+char (*prefix)[PREFIX_TABLE_SIZE][PREFIX_LENGTH] = NULL;
 
 /* Signal handler */
 static void terminate(int signum) { quit = 1; }
-
-/* Initialize a buffer */
-static void _init_string_table(string_table_t *table, const char start, int length)
-{
-	char temp1 = charset->start, temp2 = charset->start;
-
-	for (int i = 0; i < entries; i++) {
-		for (int j = 0; j < ENTRY_SIZE; j++) {
-			table->rainbow[i].prefixes.c[j * 4 + 0] = temp1;
-			table->rainbow[i].prefixes.c[j * 4 + 1] = temp2;
-			table->rainbow[i].prefixes.c[j * 4 + 2] = start;
-			if (length > 3)
-				table->rainbow[i].prefixes.c[j * 4 + 3] = charset->start;
-
-			if (temp2 == charset->end) {
-				temp2 = charset->start;
-				temp1++;
-			} else
-				temp2++;
-		}
-	}
-
-	for (int k = 4; k < length; k++)
-		table->suffix.c[k - 4] = charset->start;
-}
-
-static void prefix_init_string_table(string_table_t *table, const char start, int length)
-{
-	for (int i = 0; i < entries; i++) {
-		for (int j = 0; j < ENTRY_SIZE; j++) {
-			table->rainbow[i].prefixes.c[j * 4 + 0] = (*prefix)[i * ENTRY_SIZE + j][0];
-			table->rainbow[i].prefixes.c[j * 4 + 1] = (*prefix)[i * ENTRY_SIZE + j][1];
-			table->rainbow[i].prefixes.c[j * 4 + 2] = (*prefix)[i * ENTRY_SIZE + j][2];
-			table->rainbow[i].prefixes.c[j * 4 + 3] = start;
-		}
-	}
-
-	for (int k = 4; k < length; k++)
-		table->suffix.c[k - 4] = charset->start;
-}
-
-static void init_string_table(string_table_t *table, const char start, int length)
-{
-	table->length = length;
-	memset(&table->rainbow, 0, sizeof(rainbow_t) * entries);
-
-	if (prefix_mode)
-		prefix_init_string_table(table, start, length);
-	else
-		_init_string_table(table, start, length);
-}
-
-/* Increment a string */
-static void inc_string(string_table_t *table, const char start, const char end)
-{
-	for (int i = table->length - 1; i > 1; i--) {
-		char temp = charset->start;
-		char curr = (i < 4) ? table->rainbow[0].prefixes.c[i] : table->suffix.c[i - 4];
-		if (i == min_length - 1 && curr == end)
-			temp = start;
-		else if (curr < charset->end)
-			temp = curr + 1;
-
-		if (i < 4) {
-			for (int j = 0; j < entries; j++) {
-				table->rainbow[j].prefixes.c[i] = temp;
-				table->rainbow[j].prefixes.c[i + 4] = temp;
-				table->rainbow[j].prefixes.c[i + 8] = temp;
-				table->rainbow[j].prefixes.c[i + 12] = temp;
-			}
-		} else
-			table->suffix.c[i - 4] = temp;
-
-		if (i == min_length - 1 && temp == start)
-			break;
-		else if (temp != charset->start)
-			return;
-	}
-
-	table->length++;
-	if (table->length <= 4) {
-		for (int j = 0; j < entries; j++) {
-			table->rainbow[j].prefixes.c[table->length - 1] = charset->start;
-			table->rainbow[j].prefixes.c[table->length + 3] = charset->start;
-			table->rainbow[j].prefixes.c[table->length + 7] = charset->start;
-			table->rainbow[j].prefixes.c[table->length + 11] = charset->start;
-		}
-	} else
-		table->suffix.c[table->length - 5] = charset->start;
-}
 
 /* Actually do work */
 static void *do_work(void *p)
@@ -152,7 +59,9 @@ static void *do_work(void *p)
 	}
 
 	/* Initialize data structure */
-	init_string_table(table, start, start_length);
+	string_table_init(table, charset, start_length);
+	string_table_fill(table, start);
+	string_table_set_prefix(table, prefix);
 	rainbow = table->rainbow;
 	MD5_init_once(calc);
 
@@ -161,7 +70,7 @@ static void *do_work(void *p)
 		MD5_init(calc, &table->suffix, table->length);
 
 		/* Actually compute MD5 */
-		for (int i = 0; i < entries; i += STEP_SIZE) {
+		for (int i = 0; i < table->entries; i += STEP_SIZE) {
 			__builtin_prefetch(&rainbow[i + STEP_SIZE]);
 			MD5_quad(calc, &rainbow[i], table->length);
 			for (int j = 0; j < STEP_SIZE; j++)
@@ -169,7 +78,7 @@ static void *do_work(void *p)
 		}
 
 		/* Increment the string */
-		inc_string(table, start, end);
+		string_table_increment(table, start, end);
 		__sync_fetch_and_add(&calculated, 1);
 	} while(table->length < end_length && !quit);
 
@@ -208,10 +117,8 @@ void parse_prefix(char *optarg)
 		prefix = &numeric_prefixes;
 	else if (strcmp(optarg, "camel") == 0)
 		prefix = &camel_prefixes;
-	if (prefix) {
-		prefix_mode = 1;
+	if (prefix)
 		printf("Using %s prefixes\n", optarg);
-	}
 }
 
 void parse_bad_char(char optopt)
@@ -231,6 +138,9 @@ int main(int argc, char *argv[])
 	char *file = NULL;
 	struct timeval start_time, end_time, total_time;
 
+	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
+	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
+
         /* Check arguments */
 	if (argc < 3) {
 		printf("Usage: md5_crack -f [list] -l [min_length]:[max_length]\n");
@@ -241,9 +151,6 @@ int main(int argc, char *argv[])
 	opterr = 0;
 	start_length = MIN_LENGTH;
 	end_length = MAX_LENGTH;
-
-	printf("Sizeof md5_calc_t: %lu\n", sizeof(md5_calc_t));
-	printf("Sizeof rainbow_t: %lu\n", sizeof(rainbow_t));
 
 	while ((c = getopt(argc, argv, "c:f:l:p:")) != -1) {
 		switch (c) {
@@ -277,13 +184,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* Switch values based on prefix mode */
-	if (prefix_mode) {
+	if (prefix) {
 		calc_size = PREFIX_TABLE_SIZE;
-		entries = PREFIX_TABLE_SIZE / ENTRY_SIZE;
 		min_length = MIN_PREFIX_LENGTH;
 	} else {
 		calc_size = charset->table_size;
-		entries = charset->table_size / ENTRY_SIZE;
 		min_length = MIN_LENGTH;
 	}
 
@@ -304,7 +209,11 @@ int main(int argc, char *argv[])
 		chars[i] = charset->start + i;
 
 	/* Initialize the CPU count */
+#ifdef OPENCL
+	cpus = 1;
+#else
 	cpus = num_cpus();
+#endif
 
 	/* Get the number of lines */
 	count = read_md5_file(file);

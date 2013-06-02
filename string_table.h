@@ -21,12 +21,28 @@
 #define STRING_TABLE_H
 
 #include "charset.h"
+#include "prefix_list.h"
+
+#define MIN_LENGTH 3
+#define MAX_LENGTH 16
 
 /* Structure to store strings */
 typedef ALIGNED struct string_table {
+	/* State information */
+	charset_t *charset;
+	char (*prefix)[PREFIX_TABLE_SIZE][PREFIX_LENGTH];
+	int length;
+	int prefix_length;
+	int entries;
+
+	/* Storage */
 	rainbow_t rainbow[MAX_ENTRIES];
 	m128i_t suffix;
-	int length;
 } string_table_t;
+
+void string_table_init(string_table_t *table, charset_t *charset, int length);
+void string_table_set_prefix(string_table_t *table, char (*prefix)[PREFIX_TABLE_SIZE][PREFIX_LENGTH]);
+void string_table_fill(string_table_t *table, const char start);
+void string_table_increment(string_table_t *table, const char start, const char end);
 
 #endif

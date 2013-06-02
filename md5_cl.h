@@ -17,13 +17,22 @@
  * Boston, MA  02110-1301, USA.
  *****************************************************************************/
 
-#ifndef MD5_SSE_H
-#define MD5_SSE_H
+#ifndef MD5_CL_H
+#define MD5_CL_H
 
+#include <assert.h>
 #include "common.h"
 #include <stdint.h>
 #include <string.h>
-#include <nmmintrin.h>
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/cl.h>
+#endif
+
+/* OpenCL Stuff */
+#define MEM_SIZE (128)
+#define MAX_SOURCE_SIZE (0x100000)
 
 /* Entry and step sizes */
 #define ENTRY_SIZE 4
@@ -35,6 +44,13 @@ typedef union m128i {
 	uint32_t i[4];
 	unsigned char c[16];
 } m128i_t;
+
+/* Union wrapper for int and char access to m128i */
+typedef union m384i {
+	__m128i v[3];
+	uint32_t i[12];
+	unsigned char c[48];
+} m384i_t;
 
 /* MD5 data structure */
 typedef union md5_raw {
@@ -51,14 +67,9 @@ typedef ALIGNED struct rainbow {
 
 /* Per run data structures */
 typedef struct md5_calc {
-	ALIGNED m128i_t a[STEP_SIZE];
-	ALIGNED m128i_t b[STEP_SIZE];
-	ALIGNED m128i_t c[STEP_SIZE];
-	ALIGNED m128i_t d[STEP_SIZE];
-	ALIGNED m128i_t vbuffer[STEP_SIZE];
-	ALIGNED m128i_t common[4]; /* Common bytes 1,2,3 and 14 */
-	ALIGNED m128i_t iv;
-	ALIGNED int size_i, size_j;
+	uint32_t prefixes[ENTRY_SIZE];
+	uint32_t suffix[15];
+	int size_i, size_j, iv;
 } md5_calc_t;
 
 extern void MD5_init_once(md5_calc_t *calc);

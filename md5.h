@@ -23,7 +23,9 @@
 /* Basic MD5 header */
 #include "common.h"
 
-#ifdef __SSE2__
+#ifdef OPENCL
+#include "md5_cl.h"
+#elif __SSE2__
 #include "md5_sse.h"
 #endif
 
