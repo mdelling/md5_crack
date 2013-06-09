@@ -44,7 +44,7 @@ int charset_init(struct charset *c, int length)
 static inline void _charset_next(struct guess *g, struct charset *c)
 {
 	for (int i = g->length - 1; i >= 0; i--) {
-		if (g->string[i] < c->last) {
+		if (g->string[i] != c->last) {
 			char *curr = c->positions[i];
 			g->string[i] = curr[1];
 			c->positions[i] = &curr[1];
