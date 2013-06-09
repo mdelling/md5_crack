@@ -40,7 +40,7 @@ int charset_init(struct charset *c, int length)
 }
 
 /* Increment a guess according to an associated charset */
-static void _charset_next(struct guess *g, struct charset *c)
+static inline void _charset_next(struct guess *g, struct charset *c)
 {
 	char last = c->characters[c->number - 1];
 	for (int i = g->length - 1; i >= 0; i--) {
@@ -70,7 +70,7 @@ struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 
 	/* Copy the last one and update it*/
 	for (int i = 0; i < count; i++) {
-		memcpy(g, &c->current, sizeof(struct guess));
+		*g = c->current;
 		_charset_next(&c->current, c);
 		g++;
 	}

@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS := -std=gnu99 -Os
-OBJS := charset.o charset_lowercase.o charset_numeric.o cpus.o
+OBJS := charset.o charset_alphanumeric.o charset_lowercase.o charset_numeric.o cpus.o
 TARGET := main
 
 all: $(TARGET)

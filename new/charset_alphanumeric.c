@@ -17,11 +17,43 @@
  * Boston, MA  02110-1301, USA.
  *****************************************************************************/
 
-#ifndef CHARSETS_H
-#define CHARSETS_H
-
 #include "charset_alphanumeric.h"
-#include "charset_lowercase.h"
-#include "charset_numeric.h"
 
-#endif
+static char alphanumeric_characters[] = { "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" };
+static struct charset *c = &charset_alphanumeric;
+
+/* Initialize the character set */
+int alphanumeric_charset_init(int length)
+{
+	return charset_init(c, length);
+}
+
+/* Return the next guess */
+struct guess *alphanumeric_charset_next(struct guess *s)
+{
+	return charset_next_block(c, s, 1);
+}
+
+/* Return the next guess */
+struct guess *alphanumeric_charset_next_block(struct guess *s, int count)
+{
+	return charset_next_block(c, s, count);
+}
+
+/* Destroy the character set */
+void alphanumeric_charset_destroy()
+{
+	charset_destroy(c);
+}
+
+struct charset charset_alphanumeric = {
+	.characters = alphanumeric_characters,
+	.number = 62,
+	.lock = PTHREAD_MUTEX_INITIALIZER,
+	.current = GUESS_INITIALIZER,
+	.positions = NULL,
+	.init = alphanumeric_charset_init,
+	.next = alphanumeric_charset_next,
+	.next_block = alphanumeric_charset_next_block,
+	.destroy = alphanumeric_charset_destroy
+};
