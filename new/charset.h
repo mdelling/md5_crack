@@ -24,10 +24,12 @@
 #include <string.h>
 #include "common.h"
 
+#define STRING_LENGTH 16
+
 /* A 16-character string and associated data */
 struct guess {
 	/* The string */
-	char string[16];
+	char string[STRING_LENGTH];
 	/* The length of the string */
 	int length;
 };
@@ -45,20 +47,21 @@ struct charset {
 	pthread_mutex_t lock;
 	/* The latest string */
 	struct guess current;
+	/* Positions */
+	char *positions[STRING_LENGTH];
 	/* Initialize the struct */
 	int (*init) (int length);
 	/* Return the next guess from this charset */
-	struct guess* (*next) (void);
+	struct guess* (*next) (struct guess *s);
 	/* Return the next guess from this charset */
-	struct guess* (*next_block) (int count);
+	struct guess* (*next_block) (struct guess *s, int count);
 	/* Destroy this character set */
 	void (*destroy) (void);
 };
 
 /* Generic methods */
 int charset_init(struct charset *c, int length);
-struct guess *charset_next(struct charset *c);
-struct guess *charset_next_block(struct charset *c, int count);
+struct guess *charset_next_block(struct charset *c, struct guess *s, int count);
 void charset_destroy(struct charset *c);
 
 #endif

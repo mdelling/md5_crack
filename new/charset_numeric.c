@@ -29,15 +29,15 @@ int numeric_charset_init(int length)
 }
 
 /* Return the next guess */
-struct guess *numeric_charset_next()
+struct guess *numeric_charset_next(struct guess *s)
 {
-	return charset_next(c);
+	return charset_next_block(c, s, 1);
 }
 
 /* Return the next guess */
-struct guess *numeric_charset_next_block(int count)
+struct guess *numeric_charset_next_block(struct guess *s, int count)
 {
-	return charset_next_block(c, count);
+	return charset_next_block(c, s, count);
 }
 
 /* Destroy the character set */
@@ -51,6 +51,7 @@ struct charset charset_numeric = {
 	.number = 10,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.current = GUESS_INITIALIZER,
+	.positions = NULL,
 	.init = numeric_charset_init,
 	.next = numeric_charset_next,
 	.next_block = numeric_charset_next_block,

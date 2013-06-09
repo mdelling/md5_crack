@@ -29,15 +29,15 @@ int lowercase_charset_init(int length)
 }
 
 /* Return the next guess */
-struct guess *lowercase_charset_next()
+struct guess *lowercase_charset_next(struct guess *s)
 {
-	return charset_next(c);
+	return charset_next_block(c, s, 1);
 }
 
 /* Return the next guess */
-struct guess *lowercase_charset_next_block(int count)
+struct guess *lowercase_charset_next_block(struct guess *s, int count)
 {
-	return charset_next_block(c, count);
+	return charset_next_block(c, s, count);
 }
 
 /* Destroy the character set */
@@ -51,6 +51,7 @@ struct charset charset_lowercase = {
 	.number = 26,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.current = GUESS_INITIALIZER,
+	.positions = NULL,
 	.init = lowercase_charset_init,
 	.next = lowercase_charset_next,
 	.next_block = lowercase_charset_next_block,

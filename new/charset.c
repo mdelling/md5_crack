@@ -23,10 +23,16 @@
 int charset_init(struct charset *c, int length)
 {
 	/* Populate the next string */
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < length; i++) {
 		c->current.string[i] = c->characters[0];
-	for (int i = length; i < 16; i++)
+		c->positions[i] = &c->characters[0];
+	}
+
+	/* Populate the rest of it with 0's */
+	for (int i = length; i < STRING_LENGTH; i++) {
 		c->current.string[i] = 0;
+		c->positions[i] = &c->characters[0];
+	}
 
 	c->current.length = length;
 
@@ -39,51 +45,25 @@ static void _charset_next(struct guess *g, struct charset *c)
 	char last = c->characters[c->number - 1];
 	for (int i = g->length - 1; i >= 0; i--) {
 		if (g->string[i] < last) {
-			char *curr = strchr(c->characters, g->string[i]);
-			if (curr == NULL)
-				continue;
-
+			char *curr = c->positions[i];
 			g->string[i] = curr[1];
+			c->positions[i] = &curr[1];
 			return;
-		} else
+		} else {
 			g->string[i] = c->characters[0];
+			c->positions[i] = &c->characters[0];
+		}
 	}
 
 	g->string[g->length] = c->characters[0];
 	g->length++;
 }
 
-/* Return the next guess from a character set */
-struct guess *charset_next(struct charset *c)
-{
-	/* Allocate the first guess */
-	size_t size = sizeof(struct guess);
-	struct guess *g = (struct guess *)malloc(size);
-	if (g == NULL)
-		return NULL;
-
-	/* Lock the character set */
-	pthread_mutex_lock(&c->lock);
-
-	/* Copy the last one and update it*/
-	memcpy(g, &c->current, size);
-	_charset_next(&c->current, c);
-
-	/* Update the character set and return the old one */
-	pthread_mutex_unlock(&c->lock);
-
-	return g;
-}
-
 /* Return the next n guesses from a character set */
-struct guess *charset_next_block(struct charset *c, int count)
+struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 {
-	/* Allocate the first guess */
-	size_t size = sizeof(struct guess) * count;
-	struct guess *g = (struct guess *)malloc(size);
-	struct guess *orig = g;
-	if (g == NULL)
-		return NULL;
+	/* Stash buffer pointer */
+	struct guess *g = s;
 
 	/* Lock the character set */
 	pthread_mutex_lock(&c->lock);
@@ -98,7 +78,7 @@ struct guess *charset_next_block(struct charset *c, int count)
 	/* Update the character set and return the old one */
 	pthread_mutex_unlock(&c->lock);
 
-	return orig;
+	return s;
 }
 
 /* Destroy the character set */
