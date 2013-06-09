@@ -34,6 +34,7 @@ int charset_init(struct charset *c, int length)
 		c->positions[i] = &c->characters[0];
 	}
 
+	c->last = c->characters[c->number - 1];
 	c->current.length = length;
 
 	return 0;
@@ -42,9 +43,8 @@ int charset_init(struct charset *c, int length)
 /* Increment a guess according to an associated charset */
 static inline void _charset_next(struct guess *g, struct charset *c)
 {
-	char last = c->characters[c->number - 1];
 	for (int i = g->length - 1; i >= 0; i--) {
-		if (g->string[i] < last) {
+		if (g->string[i] < c->last) {
 			char *curr = c->positions[i];
 			g->string[i] = curr[1];
 			c->positions[i] = &curr[1];

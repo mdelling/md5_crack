@@ -49,6 +49,7 @@ void alphanumeric_charset_destroy()
 struct charset charset_alphanumeric = {
 	.characters = alphanumeric_characters,
 	.number = 62,
+	.last = 0,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.current = GUESS_INITIALIZER,
 	.positions = NULL,

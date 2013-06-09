@@ -49,6 +49,7 @@ void numeric_charset_destroy()
 struct charset charset_numeric = {
 	.characters = numeric_characters,
 	.number = 10,
+	.last = 0,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.current = GUESS_INITIALIZER,
 	.positions = NULL,
