@@ -17,45 +17,45 @@
  * Boston, MA  02110-1301, USA.
  *****************************************************************************/
 
-#include "charset_numeric.h"
+#include "charset_all.h"
 
-static char numeric_characters[] = { "0123456789" };
-static struct charset *c = &charset_numeric;
+static char all_characters[] = { "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz" };
+static struct charset *c = &charset_all;
 
 /* Initialize the character set */
-int numeric_charset_init(int length)
+int all_charset_init(int length)
 {
 	return charset_init(c, length);
 }
 
 /* Return the next guess */
-struct guess *numeric_charset_next(struct guess *s)
+struct guess *all_charset_next(struct guess *s)
 {
 	return charset_next_block(c, s, 1);
 }
 
 /* Return the next guess */
-struct guess *numeric_charset_next_block(struct guess *s, int count)
+struct guess *all_charset_next_block(struct guess *s, int count)
 {
 	return charset_next_block(c, s, count);
 }
 
 /* Destroy the character set */
-void numeric_charset_destroy()
+void all_charset_destroy()
 {
 	charset_destroy(c);
 }
 
-struct charset charset_numeric = {
-	.characters = numeric_characters,
-	.number = 10,
+struct charset charset_all = {
+	.characters = all_characters,
+	.number = 90,
 	.last = 0,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.table = NULL,
 	.table_index = 0,
 	.positions = NULL,
-	.init = numeric_charset_init,
-	.next = numeric_charset_next,
-	.next_block = numeric_charset_next_block,
-	.destroy = numeric_charset_destroy
+	.init = all_charset_init,
+	.next = all_charset_next,
+	.next_block = all_charset_next_block,
+	.destroy = all_charset_destroy
 };

@@ -20,6 +20,7 @@
 #ifndef CHARSETS_H
 #define CHARSETS_H
 
+#include "charset_all.h"
 #include "charset_alphanumeric.h"
 #include "charset_lowercase.h"
 #include "charset_numeric.h"

@@ -31,7 +31,7 @@ struct guess {
 	/* The string */
 	char string[STRING_LENGTH];
 	/* The length of the string */
-	int length;
+	unsigned char length;
 };
 
 /* A basic initializer for it */
@@ -47,8 +47,10 @@ struct charset {
 	char last;
 	/* Lock for the most recent string */
 	pthread_mutex_t lock;
-	/* The latest string */
-	struct guess current;
+	/* The latest strings */
+	struct guess *table;
+	/* Our current position in the table */
+	int table_index;
 	/* Positions */
 	char *positions[STRING_LENGTH];
 	/* Initialize the struct */
