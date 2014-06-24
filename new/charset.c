@@ -22,33 +22,40 @@
 /* Initialize the character set */
 int charset_init(struct charset *c, int length)
 {
+	/* Check the minimum length */
+	if (length < 3)
+		return 1;
+
 	/* Allocate the table */
 	size_t size = sizeof(struct guess);
-	c->table = (struct guess *)malloc(size * c->number);
+	c->table = (struct guess *)malloc(size * c->size);
 	if (c->table == NULL)
 		return 1;
 
 	/* Populate the table */
 	for (int i = 0; i < c->number; i++) {
-		/* Populate the first character and length */
-		c->table[i].string[0] = c->characters[i];
-		c->table[i].length = length;
+		for (int j = 0; j < c->number; j++) {
+			int offset = (i * c->number) + j;
+			/* Populate the first and second character and length */
+			c->table[offset].string[0] = c->characters[i];
+			c->table[offset].string[1] = c->characters[j];
+			c->table[offset].length = length;
 
-		/* Populate the body of the string */
-		for (int j = 1; j < length; j++) {
-			c->table[i].string[j] = c->characters[0];
-			c->positions[j] = &c->characters[0];
-		}
+			/* Populate the body of the string */
+			for (int k = 2; k < length; k++) {
+				c->table[offset].string[k] = c->characters[0];
+				c->positions[k] = &c->characters[0];
+			}
 
-		/* Populate the rest of it with 0's */
-		for (int j = length; j < STRING_LENGTH; j++) {
-			c->table[i].string[j] = 0;
-			c->positions[j] = &c->characters[0];
+			/* Populate the rest of it with 0's */
+			for (int k = length; k < STRING_LENGTH; k++) {
+				c->table[offset].string[k] = 0;
+				c->positions[k] = &c->characters[0];
+			}
 		}
 	}
 
 	c->table_index = 0;
-	c->last = c->characters[c->number - 1];
 
 	return 0;
 }
@@ -63,23 +70,27 @@ static inline void charset_rebuild_table(struct charset *c)
 	c->table_index = 0;
 
 	/* Find the position to start updating */
-	for (int i = length - 1; i >= 1; i--) {
+	for (int i = length - 1; i >= 2; i--) {
+		/* Calculate loop start and end points */
+		char *start = &c->table[0].string[i];
+		char *end = &c->table[c->size].string[i];
+
 		/* We found the correct place */
-		if (c->table[0].string[i] != c->last) {
+		if (c->table[0].string[i] != c->characters[c->number - 1]) {
 			/* Find the string position */
 			char *curr = c->positions[i];
 
 			/* Update the table */
-			for (int j = 0; j < c->number; j++)
-				c->table[j].string[i] = curr[1];
+			for (char *s = start; s < end; s += sizeof(struct guess))
+				*s = curr[1];
 
 			/* Update the position marker */
 			c->positions[i] = &curr[1];
 			return;
 		} else {
 			/* Reset trailing character and continue */
-			for (int j = 0; j < c->number; j++)
-				c->table[j].string[i] = c->characters[0];
+			for (char *s = start; s < end; s += sizeof(struct guess))
+				*s = c->characters[0];
 
 			/* Reset the position marker */
 			c->positions[i] = &c->characters[0];
@@ -87,7 +98,7 @@ static inline void charset_rebuild_table(struct charset *c)
 	}
 
 	/* Move to a longer string */
-	for (int i = 0; i < c->number; i++) {
+	for (int i = 0; i < c->size; i++) {
 		c->table[i].string[length] = c->characters[0];
 		c->table[i].length = length + 1;
 	}
@@ -108,7 +119,7 @@ struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 
 	/* Copy from the table, rebuilding as needed */
 	while (remaining > 0) {
-		int table_left = c->number - c->table_index;
+		int table_left = c->size - c->table_index;
 
 		/* If we need less than the table has, copy what we need */
 		if (table_left > remaining) {

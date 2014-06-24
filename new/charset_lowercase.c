@@ -49,7 +49,7 @@ void lowercase_charset_destroy()
 struct charset charset_lowercase = {
 	.characters = lowercase_characters,
 	.number = 26,
-	.last = 0,
+	.size = 676,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.table = NULL,
 	.table_index = 0,

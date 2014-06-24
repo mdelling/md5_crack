@@ -49,7 +49,7 @@ void all_charset_destroy()
 struct charset charset_all = {
 	.characters = all_characters,
 	.number = 90,
-	.last = 0,
+	.size = 8100,
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.table = NULL,
 	.table_index = 0,

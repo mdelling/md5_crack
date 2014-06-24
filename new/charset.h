@@ -43,8 +43,8 @@ struct charset {
 	char *characters;
 	/* Number of characters in this character set */
 	int number;
-	/* The last character, just so access is faster */
-	char last;
+	/* The number of strings in the table */
+	int size;
 	/* Lock for the most recent string */
 	pthread_mutex_t lock;
 	/* The latest strings */
