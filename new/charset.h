@@ -20,9 +20,9 @@
 #ifndef CHARSET_H
 #define CHARSET_H
 
-#include <pthread.h>
 #include <string.h>
 #include "common.h"
+#include "lock.h"
 
 #define STRING_LENGTH 16
 
@@ -46,7 +46,7 @@ struct charset {
 	/* The number of strings in the table */
 	int size;
 	/* Lock for the most recent string */
-	pthread_mutex_t lock;
+	lock_t lock;
 	/* The latest strings */
 	struct guess *table;
 	/* Our current position in the table */

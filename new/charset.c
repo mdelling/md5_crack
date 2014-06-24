@@ -115,7 +115,7 @@ struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 	struct guess *g = s;
 
 	/* Lock the character set */
-	pthread_mutex_lock(&c->lock);
+	lock_lock(&c->lock);
 
 	/* Copy from the table, rebuilding as needed */
 	while (remaining > 0) {
@@ -141,7 +141,7 @@ struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 	}
 
 	/* Update the character set and return the old one */
-	pthread_mutex_unlock(&c->lock);
+	lock_unlock(&c->lock);
 
 	return s;
 }
@@ -150,5 +150,5 @@ struct guess *charset_next_block(struct charset *c, struct guess *s, int count)
 void charset_destroy(struct charset *c)
 {
 	free(c->table);
-	pthread_mutex_destroy(&c->lock);
+	lock_destroy(&c->lock);
 }
