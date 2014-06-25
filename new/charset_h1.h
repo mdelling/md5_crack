@@ -17,13 +17,11 @@
  * Boston, MA  02110-1301, USA.
  *****************************************************************************/
 
-#ifndef CHARSETS_H
-#define CHARSETS_H
+#ifndef CHARSET_H1_H
+#define CHARSET_H1_H
 
-#include "charset_all.h"
-#include "charset_alphanumeric.h"
-#include "charset_h1.h"
-#include "charset_lowercase.h"
-#include "charset_numeric.h"
+#include "charset.h"
+
+struct charset charset_h1;
 
 #endif

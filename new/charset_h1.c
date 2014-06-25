@@ -17,13 +17,45 @@
  * Boston, MA  02110-1301, USA.
  *****************************************************************************/
 
-#ifndef CHARSETS_H
-#define CHARSETS_H
-
-#include "charset_all.h"
-#include "charset_alphanumeric.h"
 #include "charset_h1.h"
-#include "charset_lowercase.h"
-#include "charset_numeric.h"
 
-#endif
+static char h1_characters[] = { "acdehiklmnorstu01234579!-.@_" };
+static struct charset *c = &charset_h1;
+
+/* Initialize the character set */
+int h1_charset_init(int length)
+{
+	return charset_init(c, length);
+}
+
+/* Return the next guess */
+struct guess *h1_charset_next(struct guess *s)
+{
+	return charset_next_block(c, s, 1);
+}
+
+/* Return the next guess */
+struct guess *h1_charset_next_block(struct guess *s, int count)
+{
+	return charset_next_block(c, s, count);
+}
+
+/* Destroy the character set */
+void h1_charset_destroy()
+{
+	charset_destroy(c);
+}
+
+struct charset charset_h1 = {
+	.characters = h1_characters,
+	.number = 28,
+	.size = 784,
+	.lock = LOCK_INITIALIZER,
+	.table = NULL,
+	.table_index = 0,
+	.positions = NULL,
+	.init = h1_charset_init,
+	.next = h1_charset_next,
+	.next_block = h1_charset_next_block,
+	.destroy = h1_charset_destroy
+};
